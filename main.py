@@ -52,26 +52,7 @@ if __name__ == '__main__':
     north_coordinates_file.write('id,longitude,latitude\n')
     south_coordinates_file = open('south_coordinates_file.csv', 'w')
     south_coordinates_file.write('id,longitude,latitude\n')
-    # data =
-    #     {
-    #         "type": "FeatureCollection",
-    #         "features": [
-    #             {
-    #                 "type": "Feature",
-    #                 "properties": {},
-    #                 "geometry": {
-    #                     "coordinates": [
-    #                         [
-    #                             float(north.value.split(', ')[1]),
-    #                             float(north.value.split(', ')[0])
-    #                         ],
-    #                         [
-    #                             float(south.value.split(', ')[1]),
-    #                             float(south.value.split(', ')[0])
-    #                         ]
-    #                     ],
-    #                     "type": "LineString"
-    #                 }
+
 
     for i in range(sheet_obj.max_row):
         north = sheet_obj.cell(row=i + 1, column=8)
@@ -83,28 +64,27 @@ if __name__ == '__main__':
                 south_coordinates_file.write(str(i) + ',' + south.value + '\n')
             if not(south.value == 'South coordinates' and north.value=='North coordinates'):
                 mon_json= dict({})
-                # mon_json = {
-                #     "type": "FeatureCollection",
-                #     "features": [
-                #         {
-                #             "type": "Feature",
-                #             "properties": {},
-                #             "geometry": {
-                #                 "coordinates": [
-                #                     [
-                #                         float(north.value.split(', ')[1]),
-                #                         float(north.value.split(', ')[0])
-                #                     ],
-                #                     [
-                #                         float(south.value.split(', ')[1]),
-                #                         float(south.value.split(', ')[0])
-                #                     ]
-                #                 ],
-                #                 "type": "LineString"
-                #                 }
-                #             ],
-                #         }
-                #     }
+                mon_json = {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "coordinates": [
+                                    [
+                                        float(north.value.split(', ')[1]),
+                                        float(north.value.split(', ')[0])
+                                    ],
+                                    [
+                                        float(south.value.split(', ')[1]),
+                                        float(south.value.split(', ')[0])
+                                    ]
+                                ],
+                                "type": "LineString"
+                            }
+                        }]
+                }
                 with open('data.json', 'w') as mon_fichier:
                     json.dump(mon_json, mon_fichier,indent=4)
 
