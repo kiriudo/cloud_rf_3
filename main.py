@@ -1,4 +1,6 @@
 # This is a sample Python script.
+import os
+
 import openpyxl
 import json
 from selenium import webdriver
@@ -17,7 +19,16 @@ def print_hi(name):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # Give the location of the file
-    path = "config_sernhac.xlsx"
+    #path = "config_sernhac.xlsx"###################################
+
+    print("==================================================================== APPLICATION =======================================================================")
+    path = input("Enter the .xlsx file path : ")
+    # Create directory
+    dirName = 'files'
+
+    # Create target Directory
+    os.mkdir(dirName)
+
 
     # To open the workbook
     # workbook object is created
@@ -38,7 +49,8 @@ if __name__ == '__main__':
     # sheet object's cell() method.
     # Création d'un fichier à partir de la liste tableau
 
-    tc_coordinates = open('tc_coordinates.csv', 'w')
+    tc_coordinates = open('files/tc_coordinates.csv', 'w')
+
     for i in range(sheet_obj.max_row):
         cell_obj = sheet_obj.cell(row=i + 1, column=10)
         if (cell_obj.value is not None):
@@ -46,11 +58,12 @@ if __name__ == '__main__':
                 tc_coordinates.write('id,longitude,latitude\n')
             else:
                 tc_coordinates.write( str(i) + ',' + cell_obj.value + '\n')
-                print(cell_obj.value)
-
-    north_coordinates_file = open('north_coordinates_file.csv', 'w')
+        print("generating tc_coordinates.csv...")
+    north_coordinates_file = open('files/north_coordinates_file.csv', 'w')
+    print("generating north_coordinates_file.csv...")
     north_coordinates_file.write('id,longitude,latitude\n')
-    south_coordinates_file = open('south_coordinates_file.csv', 'w')
+    south_coordinates_file = open('files/south_coordinates_file.csv', 'w')
+    print("generating south_coordinates_file.csv...")
     south_coordinates_file.write('id,longitude,latitude\n')
     north_coord = []
     south_coord = []
@@ -85,7 +98,8 @@ if __name__ == '__main__':
                 }
 
                 mon_json["features"].append(tmp)
-                with open('datanew.json', 'w') as mon_fichier:
+                with open('files/geojson.json', 'w') as mon_fichier:
+                    print("generating the json file...")
                     json.dump(mon_json, mon_fichier,indent=4)
                 north_coord = []
                 south_coord = []
