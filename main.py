@@ -1,6 +1,6 @@
 # This is a sample Python script.
 import os
-
+import pyproj
 import openpyxl
 import json
 from selenium import webdriver
@@ -15,6 +15,13 @@ def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
+import folium
+import pyproj
+def tranform(x,y):
+    inProj = pyproj.Proj(init='epsg:2154')
+    outProj = pyproj.Proj(init='epsg:4326')
+    x2, y2 = pyproj.transform(inProj, outProj, x, y)
+    return [x2, y2]
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -23,11 +30,16 @@ if __name__ == '__main__':
 
     print("==================================================================== APPLICATION =======================================================================")
     path = input("Enter the .xlsx file path : ")
+    coord = input("type of coordinate (epsg or gps) :")
     # Create directory
     dirName = 'files'
 
     # Create target Directory
-    os.mkdir(dirName)
+    try:
+        os.mkdir(dirName)
+    except FileExistsError:
+        pass
+
 
 
     # To open the workbook
@@ -50,7 +62,7 @@ if __name__ == '__main__':
     # Création d'un fichier à partir de la liste tableau
 
     tc_coordinates = open('files/tc_coordinates.csv', 'w')
-
+    print("generating tc_coordinates.csv...")
     for i in range(sheet_obj.max_row):
         cell_obj = sheet_obj.cell(row=i + 1, column=10)
         if (cell_obj.value is not None):
@@ -58,7 +70,6 @@ if __name__ == '__main__':
                 tc_coordinates.write('id,longitude,latitude\n')
             else:
                 tc_coordinates.write( str(i) + ',' + cell_obj.value + '\n')
-        print("generating tc_coordinates.csv...")
     north_coordinates_file = open('files/north_coordinates_file.csv', 'w')
     print("generating north_coordinates_file.csv...")
     north_coordinates_file.write('id,longitude,latitude\n')
@@ -72,7 +83,7 @@ if __name__ == '__main__':
         "type": "FeatureCollection",
         "features": []
     }
-
+    print("generating the files...")
     for i in range(sheet_obj.max_row):
         north = sheet_obj.cell(row=i + 1, column=8)
         south = sheet_obj.cell(row=i + 1, column=9)
@@ -99,11 +110,11 @@ if __name__ == '__main__':
 
                 mon_json["features"].append(tmp)
                 with open('files/geojson.json', 'w') as mon_fichier:
-                    print("generating the json file...")
+
                     json.dump(mon_json, mon_fichier,indent=4)
                 north_coord = []
                 south_coord = []
-
+    print("files generated in files directory")
     # Print value of cell object
     # using the value attribute
     #print(cell_obj.value)
