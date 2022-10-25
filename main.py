@@ -13,9 +13,7 @@ def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
-def merge(dict1, dict2):
-    res = dict1 | dict2
-    return res
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # Give the location of the file
@@ -57,8 +55,11 @@ if __name__ == '__main__':
     north_coord = []
     south_coord = []
 
+    mon_json = {
+        "type": "FeatureCollection",
+        "features": []
+    }
 
-    tmp = {}
     for i in range(sheet_obj.max_row):
         north = sheet_obj.cell(row=i + 1, column=8)
         south = sheet_obj.cell(row=i + 1, column=9)
@@ -71,27 +72,23 @@ if __name__ == '__main__':
                 south_coordinates_file.write(str(i) + ',' + south.value + '\n')
                 south_coord.append(float(str(south.value).split(', ')[1]))
                 south_coord.append(float(str(south.value).split(', ')[0]))
-            tmp = merge(tmp , {
-                "type": "Feature",
-                "properties": {},
-                "geometry": {
-                    "coordinates": [
-                        north_coord,
-                        south_coord
-                    ],
-                    "type": "LineString"
+                tmp = {
+                    "type": "Feature",
+                    "properties": {},
+                    "geometry": {
+                        "coordinates": [
+                            north_coord,
+                            south_coord
+                        ],
+                        "type": "LineString"
+                    }
                 }
-            })
-            mon_json = {
-                    "type": "FeatureCollection",
-                    "features": [
-                        tmp,
-                    ]
-                }
-            with open('data.json', 'w') as mon_fichier:
-                json.dump(mon_json, mon_fichier,indent=4)
-            north_coord = []
-            south_coord = []
+
+                mon_json["features"].append(tmp)
+                with open('datanew.json', 'w') as mon_fichier:
+                    json.dump(mon_json, mon_fichier,indent=4)
+                north_coord = []
+                south_coord = []
 
     # Print value of cell object
     # using the value attribute
