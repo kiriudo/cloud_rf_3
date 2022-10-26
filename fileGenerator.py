@@ -4,18 +4,13 @@ import os
 import openpyxl
 import json
 import pyproj
-
+import warnings
 from selenium import webdriver
 from time import sleep
 import csv
 import pandas as pd
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
 def transform(x,y):
     inProj = pyproj.Proj(init='epsg:2154')
@@ -38,7 +33,10 @@ if __name__ == '__main__':
     dirName = 'files'
 
     # Create target Directory
-    os.mkdir(dirName)
+    try:
+        os.mkdir(dirName)
+    except FileExistsError:
+        pass
 
 
     # To open the workbook
@@ -61,14 +59,18 @@ if __name__ == '__main__':
     # Création d'un fichier à partir de la liste tableau
 
     tc_coordinates = open('files/tc_coordinates.csv', 'w')
-
+    warnings.filterwarnings("ignore")
     for i in range(sheet_obj.max_row):
         cell_obj = sheet_obj.cell(row=i + 1, column=10)
         if (cell_obj.value is not None):
             if(cell_obj.value == 'TC coordinates'):
                 tc_coordinates.write('id,longitude,latitude\n')
             else:
-                tc_coordinates.write( str(i) + ',' + cell_obj.value + '\n')
+                if(coord == str(1)):
+                    list1 = transform(float(str(cell_obj.value).split(', ')[0]), float(str(cell_obj.value).split(', ')[1]))
+                    tc_coordinates.write( str(i) + ',' + str(list1[0]) + ','+ str(list1[1]) + '\n')
+                else:
+                    tc_coordinates.write(str(i) + ',' + cell_obj.value + '\n')
     north_coordinates_file = open('files/north_coordinates_file.csv', 'w')
     north_coordinates_file.write('id,longitude,latitude\n')
     south_coordinates_file = open('files/south_coordinates_file.csv', 'w')
@@ -81,6 +83,7 @@ if __name__ == '__main__':
         "features": []
     }
 
+
     for i in range(sheet_obj.max_row):
         north = sheet_obj.cell(row=i + 1, column=8)
         south = sheet_obj.cell(row=i + 1, column=9)
@@ -92,9 +95,9 @@ if __name__ == '__main__':
                     north_coord.append(float(str(north.value).split(', ')[0]))
                 if(coord == str(1)):
                     print('epsg north')
-                    list1 = transform(float(str(north.value).split(', ')[1]), float(str(north.value).split(', ')[0]))
-                    north_coord.append(list1[1])
+                    list1 = transform(float(str(north.value).split(', ')[0]), float(str(north.value).split(', ')[1]))
                     north_coord.append(list1[0])
+                    north_coord.append(list1[1])
             if (not (south.value == 'South coordinates')):
                 south_coordinates_file.write(str(i) + ',' + south.value + '\n')
                 if(coord == str(2)):
@@ -103,9 +106,10 @@ if __name__ == '__main__':
                     south_coord.append(float(str(south.value).split(', ')[0]))
                 if(coord == str(1)):
                     print('epsg south')
-                    list2 = transform(float(str(south.value).split(', ')[1]), float(str(south.value).split(', ')[0]))
-                    south_coord.append(list2[1])
+                    list2 = transform(float(str(south.value).split(', ')[0]), float(str(south.value).split(', ')[1]))
+                    print(list2)
                     south_coord.append(list2[0])
+                    south_coord.append(list2[1])
                 tmp = {
                         "type": "Feature",
                         "properties": {},
