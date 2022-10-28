@@ -48,7 +48,7 @@ def draw():
         Yzigbee_last_message_txrx = [0 if math.isnan(x) else x for x in Yzigbee_last_message_txrx] # nan = 0
         for i in range(len(Xcurrent_angles)):
             d.update({Xcurrent_angles[i] : Yzigbee_last_message_txrx[i]}) # {angle : latence}
-        d = moydict(10,d)
+        d = moydict(5,d)
         y = list(d.values())
         x = range(len(y))
         # popt, pcov = curve_fit(func, x, l)
@@ -57,13 +57,13 @@ def draw():
         #plt.plot(x,fitline)
         #plt.plot(x, func(x, *popt), 'r-', label="Modélisation")
         p4 = np.poly1d(np.polyfit(x, y, 6))
-        xp = np.linspace(0, 10, 100)
+        xp = np.linspace(0, len(x), round(len(x)/2))
         plt.plot(xp, p4(xp), c='r')
-        plt.plot(x,y)
-        plt.title('courbe du tc = '+tc)
-        plt.xlabel('angle')
-        plt.ylabel('latence')
-        plt.show()
-        break
-
+        #plt.plot(x,y)
+        #break
+        #plt.title('courbe du tc = ' + tc)
+    plt.title('tous les TC')
+    plt.xlabel('angle')
+    plt.ylabel('latence')
+    plt.show()
 draw()
