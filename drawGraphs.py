@@ -45,6 +45,7 @@ def draw():
     trackers = df["tracker"].tolist()
     unique_trackers = set(trackers)
     print(list(unique_trackers))
+
     for tc in list(unique_trackers):
         print(tc)
         d = dict()
