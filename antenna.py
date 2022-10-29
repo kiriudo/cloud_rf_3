@@ -1,5 +1,4 @@
 import time
-
 import openpyxl
 import json
 import pyproj
@@ -61,17 +60,19 @@ query = {
         "ber": None,
         "mod": None,
         "nf": "-120",
-        "res": "20",
-        "rad": "2"
+        "res": "30",
+        "rad": "20"
     }
 }
 
+#permet de onvertir des coordonnées EPSG en GPS
 def transform(x,y):
     inProj = pyproj.Proj(init='epsg:2154')
     outProj = pyproj.Proj(init='epsg:4326')
     x2, y2 = pyproj.transform(inProj, outProj, x, y)
     return [x2, y2]
 
+#retourne le nom de la ville ou se trouve la centrale
 def get_site_name(path):
     wb_obj = openpyxl.load_workbook(path)
     sheet_obj = wb_obj.active
@@ -89,16 +90,18 @@ def isNetwork(string) :
 
 #liste des réseaux et la coordonnée de leur GW
 def post_network_GW(path):
-    warnings.filterwarnings("ignore")
+    warnings.filterwarnings("ignore") #pour éviter de surcharger la console avec les warnings
     wb_obj = openpyxl.load_workbook(path)
     sheet_obj = wb_obj.active
+    type = get_type(path)
     for i in range(sheet_obj.max_row):
         cell_obj = sheet_obj.cell(row=i + 1, column=1)
         if isNetwork(cell_obj.value):
             if type != 4326:
-                transf = transform(float(str(sheet_obj.cell(row=i + 1, column=5).value).split(',')[0]),float(str(sheet_obj.cell(row=i + 1, column=5).value).split(',')[1]))
+                transf = transform(float(str(sheet_obj.cell(row=i + 1, column=5).value).split(',')[1]),float(str(sheet_obj.cell(row=i + 1, column=5).value).split(',')[0]))
             else:
                 transf = sheet_obj.cell(row=i + 1, column=5).value.split(',')
+                transf = [transf[1],transf[0]]
             query.update({"site": "GW"})
             query.update({"network": get_site_name(path) + "_" + str(cell_obj.value)}),
             query.update(
@@ -120,7 +123,9 @@ def post_network_GW(path):
             with open('generation/geojson' + get_site_name(path) + str(cell_obj.value) + '.json', 'w') as mon_fichier:
                 json.dump(query, mon_fichier, indent=4)
             post(query)
+            time.sleep(1)
 
+#poster les information stockées dans le fichier json
 def post(json):
         headers = {
             "key"  : "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
@@ -129,6 +134,7 @@ def post(json):
         req = requests.post(url = "https://api.cloudrf.com/area",json= json,headers=headers)
         print(req.content)
 
+#supprimer un élément de la base (par rapport à son ID)
 def delete(elt):
     headers = {
         "key": "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
@@ -138,21 +144,23 @@ def delete(elt):
     req = requests.get(url="https://api.cloudrf.com/archive/delete?cid=" + str(elt), headers=headers)
     print("code : " + str(req.status_code) + " message : " + str(req._content))
 
+#nettoyer une réponse HTTP
 def nettoyer(list,string):
     for el in list:
         string.replace(el,'')
     return string
 
+#returne le type de coordonnées du fichier config (GPS ou EPSG)
 def get_type(path):
     warnings.filterwarnings("ignore")
     wb_obj = openpyxl.load_workbook(path)
     sheet_obj = wb_obj.active
     for i in range(sheet_obj.max_row):
-        cell_obj = sheet_obj.cell(row=i + 1, column=10)
-        if cell_obj.value == 'coordinates_system':
-            return sheet_obj.cell(row=i + 1, column=2)
+        cell_obj = sheet_obj.cell(row=i + 1, column=1).value
+        if cell_obj == 'coordinates_system':
+            return sheet_obj.cell(row=i + 1, column=2).value
 
-
+#envoie tous les TC sur la base (réseaux créés automatiquement grâce aux noms)
 def post_all_TC(path):
     wb_obj = openpyxl.load_workbook(path)
     sheet_obj = wb_obj.active
@@ -161,9 +169,11 @@ def post_all_TC(path):
         cell_obj = sheet_obj.cell(row=i + 1, column=10)
         if cell_obj.value != "TC coordinates" and cell_obj.value is not None:
             if type != 4326:
-                transf = transform(float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[0]),float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[1]))
+                transf = transform(float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[1]),float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[0]))
             else:
                 transf = sheet_obj.cell(row=i + 1, column=10).value.split(',')
+                transf = [transf[1], transf[0]]
+            print(type)
             MC = sheet_obj.cell(row=i + 1, column=1).value
             GW = sheet_obj.cell(row=i + 1, column=2).value
             ID = sheet_obj.cell(row=i + 1, column=3).value
@@ -171,11 +181,13 @@ def post_all_TC(path):
             lat = transf[1]
             post_TC(MC,GW,ID,lat,lon,get_site_name(path))
             time.sleep(1)
+
+#envoyer un TC sur la base avec toutes les infos qui vont avec
 def post_TC(MC, GW, TC_id, lat, long, site):
     TC = {
         "site": "TC" + str(TC_id),
         "ui": 3,
-        "network": str(site)+"_"+str(MC)+"_"+str(GW),
+        "network": str(site)+"_MC"+str(MC)+"_GW"+str(GW),
         "engine": "2",
         "transmitter": {
             "lat": str(lat),
@@ -221,12 +233,14 @@ def post_TC(MC, GW, TC_id, lat, long, site):
             "ber": None,
             "mod": None,
             "nf": "-120",
-            "res": "60",
-            "rad": "2"
+            "res": "30",
+            "rad": "20"
         }
     }
     post(TC)
+    print("TC " + str(TC_id) + "posted !")
 
+#retourne un dictionnaire contenant tous les ID des TC
 def get_all_id():
     headers = {
         "key": "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
@@ -239,20 +253,23 @@ def get_all_id():
     return json.loads(str(response).replace('\\n','')[2: len(response1) - 1])
     # print("code : " + str(req.status_code) + " message : " + str(req._content))
 
+#supprime tous les éléments de la base
 def delete_all():
     ids = get_all_id()['calcs']
     for el in ids:
         delete(el['id'])
 
+path = "config_sernhac.xlsx"
 #post(mon_json)
 #print(list_network('config_gargenville.xlsx'))
 # wb_obj = openpyxl.load_workbook("config_sernhac.xlsx")
 # sheet_obj = wb_obj.active
 #print(wb_obj.sheetnames[0])
 #print(get_site_name("config_sernhac.xlsx"))
-#post_network_GW("config_gargenville.xlsx")
 #delete("Gargenville_MC3_GW2")
 #print(get_all_id())
 #post(truc)
-#post_all_TC("config_sernhac.xlsx")
-#delete_all()
+delete_all()
+post_network_GW(path)
+post_all_TC(path)
+

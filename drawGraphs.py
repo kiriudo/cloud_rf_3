@@ -33,12 +33,18 @@ def moydict(step,d1):
 def func(x, a, b, c):
     return a*x**2 + b * x+ c
 
+def draw_poly(x,y):
+    p4 = np.poly1d(np.polyfit(x, y, 6))
+    xp = np.linspace(0, len(x), round(len(x) / 2))
+    plt.plot(xp, p4(xp), c='r')
+def draw_all(method):
+    pass
+
 def draw():
     df = pandas.read_csv('data_aws.csv')
     trackers = df["tracker"].tolist()
     unique_trackers = set(trackers)
     print(list(unique_trackers))
-
     for tc in list(unique_trackers):
         print(tc)
         d = dict()
@@ -51,17 +57,11 @@ def draw():
         d = moydict(5,d)
         y = list(d.values())
         x = range(len(y))
-        # popt, pcov = curve_fit(func, x, l)
-        # slope,intercept, *other = linregress(x =x ,y = l )
-        #fitline = slope * range(len(l)) + intercept
-        #plt.plot(x,fitline)
-        #plt.plot(x, func(x, *popt), 'r-', label="Modélisation")
         p4 = np.poly1d(np.polyfit(x, y, 6))
         xp = np.linspace(0, len(x), round(len(x)/2))
         plt.plot(xp, p4(xp), c='r')
         #plt.plot(x,y)
         #break
-        #plt.title('courbe du tc = ' + tc)
     plt.title('tous les TC')
     plt.xlabel('angle')
     plt.ylabel('latence')
