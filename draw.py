@@ -65,14 +65,13 @@ def draw(X, Y):
         plt.plot(x,y)
         plt.title('courbe du tc = '+tc)
         plt.xlabel('angle')
+        src = 'courbe_' + tc + '.png'
         if Y == 'zigbee_rx_signal_strength':
-            src = 'rec_courbe_' + tc + '.png'
             plt.ylabel('reception')
-            plt.savefig('template/rec/rec_courbe_' + tc + '.png')
+            plt.savefig('template/rec/courbe_' + tc + '.png')
         else:
-            src = 'lat_courbe_' + tc + '.png'
             plt.ylabel('latence')
-            plt.savefig('template/lat/lat_courbe_' + tc + '.png')
+            plt.savefig('template/lat/courbe_' + tc + '.png')
         images.append(str(src))
         plt.show()
     print(images)

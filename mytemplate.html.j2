@@ -10,16 +10,10 @@
 		</tr>
     {% for img in images %}
         <tr>
-        {% if img[:3] == 'lat' %}
 
-				<td><img src='./template/lat/{{img}}' alt='courbe'></td>
+           <td><img src='./template/rec/{{img}}' alt='courbe'></td>
+		   <td><img src='./template/lat/{{img}}' alt='courbe'></td>
 
-        {% endif %}
-        {% if img[:3] == 'rec' %}
-
-				<td><img src='./template/rec/{{img}}' alt='courbe'></td>
-
-        {% endif %}
         </tr>
     {% endfor %}
 
