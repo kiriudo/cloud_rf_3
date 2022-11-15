@@ -3,9 +3,25 @@
     <title>My Webpage</title>
 </head>
 <body>
-<ul id="navigation">
+<table class="table">
+		<tr>
+			<th>courbe caractéristique pour chaque tracker <br/> de la qualité de réception en fonction de l'angle</th>
+			<th>courbe caractéristique pour chaque tracker <br/> de la latence en fonction de l'angle</th>
+		</tr>
     {% for img in images %}
-       <img src='{{img}}' alt='courbe'>
+        <tr>
+        {% if img[:3] == 'lat' %}
+
+				<td><img src='./template/lat/{{img}}' alt='courbe'></td>
+
+        {% endif %}
+        {% if img[:3] == 'rec' %}
+
+				<td><img src='./template/rec/{{img}}' alt='courbe'></td>
+
+        {% endif %}
+        </tr>
     {% endfor %}
-</ul>
+
+</table>
 </body></html>

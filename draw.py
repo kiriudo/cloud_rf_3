@@ -47,10 +47,10 @@ def draw(X, Y):
         d = dict()
         tc_data = df.loc[df['tracker'] == tc]
         Xcurrent_angles = tc_data[X].tolist()
-        Yzigbee_last_message_txrx = tc_data[Y].tolist()
-        Yzigbee_last_message_txrx = [0 if math.isnan(x) else x for x in Yzigbee_last_message_txrx] # nan = 0
+        Y_ = tc_data[Y].tolist()
+        Y_ = [0 if math.isnan(x) else x for x in Y_] # nan = 0
         for i in range(len(Xcurrent_angles)):
-            d.update({Xcurrent_angles[i] : Yzigbee_last_message_txrx[i]}) # {angle : latence}
+            d.update({Xcurrent_angles[i] : Y_[i]}) # {angle : latence}
         d = moydict(10,d)
         y = list(d.values())
         x = range(len(y))
@@ -63,22 +63,43 @@ def draw(X, Y):
         xp = np.linspace(0, 10, 100)
         plt.plot(xp, p4(xp), c='r')
         plt.plot(x,y)
-        src = 'courbe_'+tc+'.png'
         plt.title('courbe du tc = '+tc)
         plt.xlabel('angle')
-        plt.ylabel('latence')
-        plt.savefig('courbe_'+tc+'.png')
+        if Y == 'zigbee_rx_signal_strength':
+            src = 'rec_courbe_' + tc + '.png'
+            plt.ylabel('reception')
+            plt.savefig('template/rec/rec_courbe_' + tc + '.png')
+        else:
+            src = 'lat_courbe_' + tc + '.png'
+            plt.ylabel('latence')
+            plt.savefig('template/lat/lat_courbe_' + tc + '.png')
         images.append(str(src))
         plt.show()
     print(images)
     return images
 
-#draw('current_angle', 'zigbee_last_message_txrx')
+def draw_all():
+    Y = ['zigbee_last_message_txrx', 'zigbee_rx_signal_strength']
+    X = 'current_angle'
+    lat_images = []
+    rec_images = []
+    for y in Y:
+        if y == 'zigbee_last_message_txrx':
+            lat_images = draw(X,y)
+        else:
+            rec_images = draw(X,y)
+    all_img= lat_images+rec_images
+    return  all_img
 
+
+
+#draw('current_angle', 'zigbee_last_message_txrx')
+# Y = ['zigbee_last_message_txrx', 'zigbee_rx_signal_strength']
+# X = 'current_angle'
 env = Environment(loader=FileSystemLoader("template"))
 template = env.get_template("mytemplate.html.j2")
-output = template.render(images=draw('current_angle', 'zigbee_last_message_txrx')
-, hello="world")
-
+output = template.render(images=draw_all()
+    , hello="world")
 with io.open("index.html", "w") as file_point:
     file_point.write(output)
+###############################################################
