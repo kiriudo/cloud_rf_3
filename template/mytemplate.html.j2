@@ -1,12 +1,14 @@
 <!DOCTYPE html><html lang="en">
 <head>
     <title>My Webpage</title>
+    <link href="style.css" rel="stylesheet">
+
 </head>
 <body>
 <table class="table">
 		<tr>
-			<th>courbe caractéristique pour chaque tracker <br/> de la qualité de réception en fonction de l'angle</th>
-			<th>courbe caractéristique pour chaque tracker <br/> de la latence en fonction de l'angle</th>
+			<th  scope="col">courbe caractéristique pour chaque tracker <br/> de la qualité de réception en fonction de l'angle</th>
+			<th  scope="col">courbe caractéristique pour chaque tracker <br/> de la latence en fonction de l'angle</th>
 		</tr>
     {% for img in images %}
         <tr>

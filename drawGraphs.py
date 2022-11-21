@@ -58,12 +58,14 @@ def draw():
         d = moydict(5,d)
         y = list(d.values())
         x = range(len(y))
-        p4 = np.poly1d(np.polyfit(x, y, 6))
+        p4 = np.poly1d(np.polyfit(x, y, 9))
         xp = np.linspace(0, len(x), round(len(x)/2))
         plt.plot(xp, p4(xp), c='r')
+        plt.plot(x,y)
         #plt.plot(x,y)
-        #break
-    plt.title('tous les TC')
+        plt.title('Courbe ' + tc)
+        break
+
     plt.xlabel('angle')
     plt.ylabel('latence')
     plt.show()

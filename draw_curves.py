@@ -69,9 +69,11 @@ def draw_curves(X, Y):
         src = 'courbe_' + tc + '.png'
         if Y == 'zigbee_rx_signal_strength':
             plt.ylabel('reception')
+            plt.ylim([0,80])
             plt.savefig('template/rec/courbe_' + tc + '.png')
         else:
             plt.ylabel('latence')
+            plt.ylim([0, 0.50])
             plt.savefig('template/lat/courbe_' + tc + '.png')
         images.append(str(src))
         plt.show()
@@ -94,8 +96,7 @@ def draw_all_curves():
 
 env = Environment(loader=FileSystemLoader("template"))
 template = env.get_template("mytemplate.html.j2")
-output = template.render(images=draw_all_curves()
-    , hello="world")
+output = template.render(images=draw_all_curves())
 with io.open("index2.html", "w") as file_point:
     file_point.write(output)
 ###############################################################

@@ -66,14 +66,14 @@ query = {
 }
 
 #permet de onvertir des coordonnées EPSG en GPS
-def transform(x,y):
+def transform(x,y) -> list:
     inProj = pyproj.Proj(init='epsg:2154')
     outProj = pyproj.Proj(init='epsg:4326')
     x2, y2 = pyproj.transform(inProj, outProj, x, y)
     return [x2, y2]
 
 #retourne le nom de la ville ou se trouve la centrale
-def get_site_name(path):
+def get_site_name(path) -> str:
     wb_obj = openpyxl.load_workbook(path)
     sheet_obj = wb_obj.active
     for i in range(sheet_obj.max_row):
@@ -115,14 +115,14 @@ def post_network_GW(path):
                     }
                 })
             print("posting " + get_site_name(path) + '_' + str(cell_obj.value) + "...")
-            print(transf)
             try:
                 os.mkdir("generation")
             except FileExistsError:
                 pass
             with open('generation/geojson' + get_site_name(path) + str(cell_obj.value) + '.json', 'w') as mon_fichier:
                 json.dump(query, mon_fichier, indent=4)
-            post(query)
+            print(post(query))
+            print("\r")
             time.sleep(1)
 
 #poster les information stockées dans le fichier json
@@ -132,7 +132,7 @@ def post(json):
             "content-Type" : "application/json, text/javascript, */*; q=0.01"
         }
         req = requests.post(url = "https://api.cloudrf.com/area",json= json,headers=headers)
-        print(req.content)
+        return str(req.content).replace('\\n','')
 
 #supprimer un élément de la base (par rapport à son ID)
 def delete(elt):
@@ -151,7 +151,7 @@ def nettoyer(list,string):
     return string
 
 #returne le type de coordonnées du fichier config (GPS ou EPSG)
-def get_type(path):
+def get_type(path) -> str:
     warnings.filterwarnings("ignore")
     wb_obj = openpyxl.load_workbook(path)
     sheet_obj = wb_obj.active
@@ -160,8 +160,9 @@ def get_type(path):
         if cell_obj == 'coordinates_system':
             return sheet_obj.cell(row=i + 1, column=2).value
 
-#envoie tous les TC sur la base (réseaux créés automatiquement grâce aux noms)
-def post_all_TC(path):
+#renvoie la liste de tous les TC présents sur le ficher config dans un dictionnaire
+def get_TC_list(path) -> dict:
+    l = dict()
     wb_obj = openpyxl.load_workbook(path)
     sheet_obj = wb_obj.active
     type = get_type(path)
@@ -173,17 +174,32 @@ def post_all_TC(path):
             else:
                 transf = sheet_obj.cell(row=i + 1, column=10).value.split(',')
                 transf = [transf[1], transf[0]]
-            print(type)
             MC = sheet_obj.cell(row=i + 1, column=1).value
             GW = sheet_obj.cell(row=i + 1, column=2).value
             ID = sheet_obj.cell(row=i + 1, column=3).value
             lon = transf[0]
             lat = transf[1]
-            post_TC(MC,GW,ID,lat,lon,get_site_name(path))
-            time.sleep(1)
+            l.update({
+                "MC" : MC,
+                "GW" : GW,
+                "ID" : ID,
+                "lon" : lon,
+                "lat" : lat,
+            })
+
+#envoie tous les TC sur la base (réseaux créés automatiquement grâce aux noms)
+def post_all_TC(path):
+    tclist = get_TC_list(path)
+    num_count = 50
+    wb_obj = openpyxl.load_workbook(path)
+    for el in tclist:
+        print("posting TC " + el["ID"] + "...")
+        print(post_TC(el["MC"],el["GW"],el["ID"],el["lat"],el["lon"],get_site_name(path)))
+        time.sleep(0.5)
+
 
 #envoyer un TC sur la base avec toutes les infos qui vont avec
-def post_TC(MC, GW, TC_id, lat, long, site):
+def post_TC(MC, GW, TC_id, lat, long, site) -> str:
     TC = {
         "site": "TC" + str(TC_id),
         "ui": 3,
@@ -238,10 +254,10 @@ def post_TC(MC, GW, TC_id, lat, long, site):
         }
     }
     post(TC)
-    print("TC " + str(TC_id) + "posted !")
+    return "TC " + str(TC_id) + "posted !"
 
 #retourne un dictionnaire contenant tous les ID des TC
-def get_all_id():
+def get_all_id() -> dict:
     headers = {
         "key": "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
         "content-Type": "application/json, text/javascript, */*; q=0.01"
@@ -259,17 +275,31 @@ def delete_all():
     for el in ids:
         delete(el['id'])
 
-path = "config_sernhac.xlsx"
-#post(mon_json)
-#print(list_network('config_gargenville.xlsx'))
-# wb_obj = openpyxl.load_workbook("config_sernhac.xlsx")
-# sheet_obj = wb_obj.active
-#print(wb_obj.sheetnames[0])
-#print(get_site_name("config_sernhac.xlsx"))
-#delete("Gargenville_MC3_GW2")
-#print(get_all_id())
-#post(truc)
-delete_all()
-post_network_GW(path)
-post_all_TC(path)
+#delete_all()
+post_network_GW("config_sernhac.xlsx")
+post_all_TC("config_sernhac.xlsx")
 
+# c = input("clean database ? (o/n ; 0 to cancel) : ")
+# if c == "o":
+#     delete_all()
+# while(c!=0):
+#     path = input("enter the path :")
+#     while(c!=5):
+#         print("1- post all GW\n"
+#               "2- post all TC\n"
+#               "3- post TC + GW\n"
+#               "4- delete all\n"
+#               "5- change path\n"
+#               "0- cancel\n")
+#         c = input("select an action :")
+#         if c== "1":
+#             post_network_GW(path)
+#         elif c == "2":
+#             post_all_TC(path)
+#         elif c == "3":
+#             post_network_GW(path)
+#             post_all_TC(path)
+#         elif c == "4":
+#             delete_all()
+#         elif c == "0":
+#             print("bye !")
