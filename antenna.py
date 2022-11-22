@@ -98,12 +98,12 @@ def post_network_GW(path):
         cell_obj = sheet_obj.cell(row=i + 1, column=1)
         if isNetwork(cell_obj.value):
             if type != 4326:
-                transf = transform(float(str(sheet_obj.cell(row=i + 1, column=5).value).split(',')[1]),float(str(sheet_obj.cell(row=i + 1, column=5).value).split(',')[0]))
+                transf = transform(float(str(sheet_obj.cell(row=i + 1, column=5).value).split(',')[0]),float(str(sheet_obj.cell(row=i + 1, column=5).value).split(',')[1]))
             else:
                 transf = sheet_obj.cell(row=i + 1, column=5).value.split(',')
                 transf = [transf[1],transf[0]]
             query.update({"site": "GW"})
-            query.update({"network": get_site_name(path) + "_" + str(cell_obj.value)}),
+            query.update({"network": get_site_name(path) + "." + str(cell_obj.value).replace('GW','').replace('MC','').replace('_','.')}),
             query.update(
                 {"transmitter" : {
                     "lon": transf[0],
@@ -122,7 +122,7 @@ def post_network_GW(path):
             with open('generation/geojson' + get_site_name(path) + str(cell_obj.value) + '.json', 'w') as mon_fichier:
                 json.dump(query, mon_fichier, indent=4)
             print(post(query))
-            print("\r")
+            print(cell_obj.value + " posted !")
             time.sleep(1)
 
 #poster les information stockées dans le fichier json
@@ -170,7 +170,7 @@ def get_TC_list(path) -> dict:
         cell_obj = sheet_obj.cell(row=i + 1, column=10)
         if cell_obj.value != "TC coordinates" and cell_obj.value is not None:
             if type != 4326:
-                transf = transform(float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[1]),float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[0]))
+                transf = transform(float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[0]),float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[1]))
             else:
                 transf = sheet_obj.cell(row=i + 1, column=10).value.split(',')
                 transf = [transf[1], transf[0]]
@@ -179,31 +179,46 @@ def get_TC_list(path) -> dict:
             ID = sheet_obj.cell(row=i + 1, column=3).value
             lon = transf[0]
             lat = transf[1]
-            l.update({
+            l.update({str(i) :
+            {
                 "MC" : MC,
                 "GW" : GW,
                 "ID" : ID,
                 "lon" : lon,
                 "lat" : lat,
-            })
+            }})
+            print(l)
+    return l
 
 #envoie tous les TC sur la base (réseaux créés automatiquement grâce aux noms)
 def post_all_TC(path):
-    tclist = get_TC_list(path)
-    num_count = 50
     wb_obj = openpyxl.load_workbook(path)
-    for el in tclist:
-        print("posting TC " + el["ID"] + "...")
-        print(post_TC(el["MC"],el["GW"],el["ID"],el["lat"],el["lon"],get_site_name(path)))
-        time.sleep(0.5)
+    sheet_obj = wb_obj.active
+    type = get_type(path)
+    for i in range(sheet_obj.max_row):
+        cell_obj = sheet_obj.cell(row=i + 1, column=10)
+        if cell_obj.value != "TC coordinates" and cell_obj.value is not None:
+            if type != 4326:
+                transf = transform(float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[0]),float(str(sheet_obj.cell(row=i + 1, column=10).value).split(',')[1]))
+            else:
+                transf = sheet_obj.cell(row=i + 1, column=10).value.split(',')
+                transf = [transf[1], transf[0]]
+            MC = sheet_obj.cell(row=i + 1, column=1).value
+            GW = sheet_obj.cell(row=i + 1, column=2).value
+            ID = sheet_obj.cell(row=i + 1, column=3).value
+            lon = transf[0]
+            lat = transf[1]
+            print(post_TC(MC,GW,ID,lat,lon,get_site_name(path)))
+            #time.sleep(0.5)
 
 
 #envoyer un TC sur la base avec toutes les infos qui vont avec
 def post_TC(MC, GW, TC_id, lat, long, site) -> str:
+    print("posting TC " + str(MC) + "." + str(GW) + "." + str(TC_id) + " ...")
     TC = {
-        "site": "TC" + str(TC_id),
+        "site": str(TC_id),
         "ui": 3,
-        "network": str(site)+"_MC"+str(MC)+"_GW"+str(GW),
+        "network": str(site) + "." + str(MC) + "." + str(GW),
         "engine": "2",
         "transmitter": {
             "lat": str(lat),
@@ -253,8 +268,8 @@ def post_TC(MC, GW, TC_id, lat, long, site) -> str:
             "rad": "20"
         }
     }
-    post(TC)
-    return "TC " + str(TC_id) + "posted !"
+    print(post(TC))
+    return "TC " + str(TC_id) + " posted !"
 
 #retourne un dictionnaire contenant tous les ID des TC
 def get_all_id() -> dict:
@@ -274,10 +289,13 @@ def delete_all():
     ids = get_all_id()['calcs']
     for el in ids:
         delete(el['id'])
+    print("nothing else to delete ...")
 
 #delete_all()
-post_network_GW("config_sernhac.xlsx")
-post_all_TC("config_sernhac.xlsx")
+#post_network_GW("config_sernhac.xlsx")
+#delete_all()
+post_network_GW("config_gargenville.xlsx")
+#post_all_TC("config_gargenville.xlsx")
 
 # c = input("clean database ? (o/n ; 0 to cancel) : ")
 # if c == "o":
