@@ -9,19 +9,22 @@
 		<tr>
 			<th  scope="col">courbe caractéristique pour chaque tracker <br/> de la qualité de réception en fonction de l'angle</th>
 			<th  scope="col">courbe caractéristique pour chaque tracker <br/> de la latence en fonction de l'angle</th>
+			<th  scope="col">distance à la Gateway</th>
 		</tr>
     {% for img in images %}
         <tr>
            <td>
-           Réception pour {{img}}<br/>
-           <img src='./template/rec/{{img}}' alt='courbe'></td>
+               Réception pour {{img}}<br/>
+               <img src='./template/rec/{{img}}' alt='courbe'>
+           </td>
 		   <td>
-		   Latence pour {{img}}<br/>
-		   <img src='./template/lat/{{img}}' alt='courbe'>
+               Latence pour {{img}}<br/>
+               <img src='./template/lat/{{img}}' alt='courbe'>
 		   </td>
-
-        </tr>
+		   <td> {{dist}} m </td>
+		</tr>
     {% endfor %}
+
 
 </table>
 </body></html>

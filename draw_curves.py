@@ -1,4 +1,4 @@
-import math
+from math import *
 import warnings
 
 import numpy as np
@@ -7,12 +7,21 @@ import pandas
 import statistics as stat
 import matplotlib.pyplot as plt
 import pylab
+import pyproj
 from numpy import polyfit
 from scipy.stats import linregress
 from scipy.optimize import curve_fit
 import io
 import numpy as np
 from jinja2 import Environment, PackageLoader, select_autoescape, FileSystemLoader
+
+
+def deg2rad(dd):
+    return dd / 180 * pi
+def distanceGPS(latA, longA, latB, longB):
+    RT = 6378137
+    S = acos(sin(latA) * sin(latB) + cos(latA) * cos(latB) * cos(abs(longB - longA)))
+    return S * RT
 
 def mean(min, max, d1):
     mean_result = 0
@@ -65,7 +74,6 @@ def isNetwork(string) :
 def pos_TC(TC,path) -> str: #TC1.1.1
     tc = TC.replace('TC','')
     l = tc.split('.')
-    print(str(l[0]) + str(l[1]) + str(l[2]))
     wb_obj = openpyxl.load_workbook(path)
     sheet_obj = wb_obj.active
     for i in range(sheet_obj.max_row):
@@ -85,13 +93,28 @@ def pos_GW(TC,path) -> str:
         if isNetwork(cell_obj.value) and str(cell_obj.value).replace('GW','').replace('MC','').split('_')[1] == l[1]:
             return str(sheet_obj.cell(row=i + 1, column=5).value)
 
-def dist(TC,path) -> float:
-    pass
+def transform(x,y) -> list:
+    inProj = pyproj.Proj(init='epsg:2154')
+    outProj = pyproj.Proj(init='epsg:4326')
+    x2, y2 = pyproj.transform(inProj, outProj, x, y)
+    return [x2, y2]
+
+def dist(TC,path) -> float: #retourne la distance d'un TC à sa GW en mètres
+    coord_GW = pos_GW(TC,path).split(', ')
+    coord_TC = pos_TC(TC,path).split(', ')
+    if get_type(path) != 4326:
+        coord_GW = transform(coord_GW[0],coord_GW[1])
+        coord_TC = transform(coord_TC[0], coord_TC[1])
+    lon_GW = deg2rad(float(coord_GW[1]))
+    lat_GW = deg2rad(float(coord_GW[0]))
+    lon_TC = deg2rad(float(coord_TC[1]))
+    lat_TC = deg2rad(float(coord_TC[0]))
+    return distanceGPS(lat_TC,lon_TC,lat_GW,lon_GW)
+
 def draw_curves(X, Y):
     df = pandas.read_csv('data_aws.csv')
     trackers = df["tracker"].tolist()
     unique_trackers = set(trackers)
-    print(list(unique_trackers))
     unique_trackers = sorted(unique_trackers)
     images = []
     for tc in list(unique_trackers):
@@ -109,14 +132,13 @@ def draw_curves(X, Y):
         #Ylatence = [x for x in Ylatence if math.isnan(x) == False]  # supprimer nan
         for x in range(len(Ylatence)):
             val = Ylatence[x]
-            if math.isnan(val) == False:
+            if isnan(val) == False:
                 Ylatence2.append(val)
                 Xcurrent_angles2.append(Xcurrent_angles[x])
         for i in range(len(Xcurrent_angles2)):
             dmed.update({Xcurrent_angles2[i] : Ylatence2[i]}) # {angle : latence}
             dproved.update({Xcurrent_angles2[i]: Ylatence2[i]})  # {angle : latence}
             dpossible.update({Xcurrent_angles2[i]: Ylatence2[i]})  # {angle : latence}
-        print(dpossible)
         dmed = update_dict(step, dmed,50)
         dproved = update_dict(step, dproved,90)
         dpossible = update_dict(step, dpossible, 10)
@@ -135,29 +157,42 @@ def draw_curves(X, Y):
             plt.savefig('template/lat/courbe_' + tc + '.png')
         images.append(str(src))
         plt.show()
-    print(images)
     return images
 
-def draw_all_curves():
+def draw_all_curves(path):
     Y = ['zigbee_last_message_txrx', 'zigbee_rx_signal_strength']
     X = 'current_angle'
     lat_images = []
     rec_images = []
+    all = dict()
     for y in Y:
         if y == 'zigbee_last_message_txrx':
             lat_images = draw_curves(X, y)
         else:
             rec_images = draw_curves(X, y)
     all_img = lat_images + rec_images
-    return  all_img
+    all = {"img" : all_img,"dist" : getdist(path)}
+    return  all
+def getdist(path):
+    l = []
+    df = pandas.read_csv('data_aws.csv')
+    trackers = df["tracker"].tolist()
+    unique_trackers = set(trackers)
+    unique_trackers = sorted(unique_trackers)
+    for tc in unique_trackers:
+        l.append(round(dist(tc,path)))
+    return l
 
+env = Environment(loader = FileSystemLoader("template"))
+template = env.get_template("mytemplate.html.j2")
+output = template.render(images = draw_all_curves("config_sernhac.xlsx")["img"], distances = draw_all_curves("config_sernhac.xlsx")["dist"])
+with io.open("index2.html", "w") as file_point:
+    file_point.write(output)
 
-# env = Environment(loader=FileSystemLoader("template"))
-# template = env.get_template("mytemplate.html.j2")
-# output = template.render(images=draw_all_curves())
-# with io.open("index2.html", "w") as file_point:
-#     file_point.write(output)
-print("TC: " + str(pos_TC("TC1.1.1", "config_sernhac.xlsx")))
-print("GW: " + str(pos_GW("TC1.1.1", "config_sernhac.xlsx")))
+# print("TC: " + str(pos_TC("TC1.1.1", "config_sernhac.xlsx")))
+# print("GW: " + str(pos_GW("TC1.1.1", "config_sernhac.xlsx")))
+#print("dist : " + str(round(dist("TC1.1.1", "config_sernhac.xlsx"))))
+#print(getdist("config_sernhac.xlsx"))
+#print(draw_all_curves("config_sernhac.xlsx")["dist"])
 ###############################################################
 #geopy
