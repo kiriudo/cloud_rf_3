@@ -1,5 +1,8 @@
 import math
+import warnings
+
 import numpy as np
+import openpyxl
 import pandas
 import statistics as stat
 import matplotlib.pyplot as plt
@@ -44,7 +47,46 @@ def update_dict(step, d1,p):
            #d2.update({ str(angle_value-step) + "<->" + str(angle_value) : median(angle_value - step, angle_value, d1)})
            d2.update({ str(angle_value) : median(angle_value - step, angle_value, d1,p)})
     return d2
+def get_type(path) -> str:
+    warnings.filterwarnings("ignore")
+    wb_obj = openpyxl.load_workbook(path)
+    sheet_obj = wb_obj.active
+    for i in range(sheet_obj.max_row):
+        cell_obj = sheet_obj.cell(row=i + 1, column=1).value
+        if cell_obj == 'coordinates_system':
+            return sheet_obj.cell(row=i + 1, column=2).value
 
+def isNetwork(string) :
+    if string is not None:
+        mc = str(string).find("MC")
+        gw = str(string).find("GW")
+        return gw != -1 and mc != -1
+
+def pos_TC(TC,path) -> str: #TC1.1.1
+    tc = TC.replace('TC','')
+    l = tc.split('.')
+    print(str(l[0]) + str(l[1]) + str(l[2]))
+    wb_obj = openpyxl.load_workbook(path)
+    sheet_obj = wb_obj.active
+    for i in range(sheet_obj.max_row):
+        cell_obj = sheet_obj.cell(row=i + 1, column=10)
+        if cell_obj.value != "TC coordinates" and cell_obj.value is not None:
+            if sheet_obj.cell(row=i + 1, column=1).value == int(l[0]) and sheet_obj.cell(row=i + 1, column=2).value == int(l[1]) and sheet_obj.cell(row=i + 1, column=3).value == int(l[2]):
+                return sheet_obj.cell(row=i + 1, column=10).value
+    return 0
+
+def pos_GW(TC,path) -> str:
+    tc = TC.replace('TC', '')
+    l = tc.split('.')
+    wb_obj = openpyxl.load_workbook(path)
+    sheet_obj = wb_obj.active
+    for i in range(sheet_obj.max_row):
+        cell_obj = sheet_obj.cell(row=i + 1, column=1)
+        if isNetwork(cell_obj.value) and str(cell_obj.value).replace('GW','').replace('MC','').split('_')[1] == l[1]:
+            return str(sheet_obj.cell(row=i + 1, column=5).value)
+
+def dist(TC,path) -> float:
+    pass
 def draw_curves(X, Y):
     df = pandas.read_csv('data_aws.csv')
     trackers = df["tracker"].tolist()
@@ -70,7 +112,6 @@ def draw_curves(X, Y):
             if math.isnan(val) == False:
                 Ylatence2.append(val)
                 Xcurrent_angles2.append(Xcurrent_angles[x])
-
         for i in range(len(Xcurrent_angles2)):
             dmed.update({Xcurrent_angles2[i] : Ylatence2[i]}) # {angle : latence}
             dproved.update({Xcurrent_angles2[i]: Ylatence2[i]})  # {angle : latence}
@@ -111,10 +152,12 @@ def draw_all_curves():
     return  all_img
 
 
-env = Environment(loader=FileSystemLoader("template"))
-template = env.get_template("mytemplate.html.j2")
-output = template.render(images=draw_all_curves())
-with io.open("index2.html", "w") as file_point:
-    file_point.write(output)
+# env = Environment(loader=FileSystemLoader("template"))
+# template = env.get_template("mytemplate.html.j2")
+# output = template.render(images=draw_all_curves())
+# with io.open("index2.html", "w") as file_point:
+#     file_point.write(output)
+print("TC: " + str(pos_TC("TC1.1.1", "config_sernhac.xlsx")))
+print("GW: " + str(pos_GW("TC1.1.1", "config_sernhac.xlsx")))
 ###############################################################
 #geopy

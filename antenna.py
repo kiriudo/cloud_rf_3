@@ -293,9 +293,9 @@ def delete_all():
 
 #delete_all()
 #post_network_GW("config_sernhac.xlsx")
-#delete_all()
+delete_all()
 post_network_GW("config_gargenville.xlsx")
-#post_all_TC("config_gargenville.xlsx")
+post_all_TC("config_gargenville.xlsx")
 
 # c = input("clean database ? (o/n ; 0 to cancel) : ")
 # if c == "o":
