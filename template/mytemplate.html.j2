@@ -9,9 +9,8 @@
 		<tr>
 			<th  scope="col">courbe caractéristique pour chaque tracker <br/> de la qualité de réception en fonction de l'angle</th>
 			<th  scope="col">courbe caractéristique pour chaque tracker <br/> de la latence en fonction de l'angle</th>
-			<th  scope="col">distance à la Gateway</th>
 		</tr>
-    {% for img in images %}
+    {% for img in images%}
         <tr>
            <td>
                Réception pour {{img}}<br/>
@@ -21,9 +20,18 @@
                Latence pour {{img}}<br/>
                <img src='./template/lat/{{img}}' alt='courbe'>
 		   </td>
-		   <td> {{dist}} m </td>
 		</tr>
     {% endfor %}
+        <tr>
+		    <td>
+               nombre de nan en fonction de la distance <br/>
+               <img src='./template/lat/courbe_nandist_rec.png' alt='courbe'>
+           </td>
+           <td>
+               nombre de nan en fonction de la distance <br/>
+               <img src='./template/lat/courbe_nandist_lat.png' alt='courbe'>
+           </td>
+		</tr>
 
 
 </table>

@@ -127,13 +127,32 @@ def post_network_GW(path):
 
 #poster les information stockées dans le fichier json
 def post(json):
-        headers = {
-            "key"  : "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
-            "content-Type" : "application/json, text/javascript, */*; q=0.01"
-        }
-        req = requests.post(url = "https://api.cloudrf.com/area",json= json,headers=headers)
-        return str(req.content).replace('\\n','')
-
+    headers = {
+        "key"  : "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
+        "content-Type" : "application/json, text/javascript, */*; q=0.01"
+    }
+    req = requests.post(url = "https://api.cloudrf.com/area",json= json,headers=headers)
+    return str(req.content).replace('\\n','')
+def generate_csv(path):
+    entetes = list()
+    valeurs = []
+    count =0
+    wb_obj = openpyxl.load_workbook(path)
+    sheet_obj = wb_obj.active
+    type = get_type(path)
+    for i in range(sheet_obj.max_row):
+        cell_obj = sheet_obj.cell(row=i + 1, column=10)
+        if cell_obj.value != "TC coordinates" and cell_obj.value is not None:
+            valeurs[i][0] = sheet_obj.cell(row=i + 1, column=3).value
+            valeurs[i][0] = sheet_obj.cell(row=i + 1, column=3).value
+            valeurs[i][0] = sheet_obj.cell(row=i + 1, column=3).value
+            count = count + 1
+    f = open('tc_coordinates.csv', 'w')
+    ligneEntete = ";".join(entetes) + "\n"
+    f.write(ligneEntete)
+    for valeur in valeurs:
+        ligne = ";".join(valeur) + "\n"
+        f.write(ligne)
 #supprimer un élément de la base (par rapport à son ID)
 def delete(elt):
     headers = {
@@ -189,6 +208,48 @@ def get_TC_list(path) -> dict:
             }})
             print(l)
     return l
+def post_on_url(url):
+    headers = {
+        "key": "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
+        "content-Type": "application/json, text/javascript, */*; q=0.01"
+    }
+    req = requests.post(url=url, headers=headers)
+    print("code : " + str(req.status_code) + " message : " + str(req._content))
+def get_on_url(url):
+    headers = {
+        "key": "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
+        "content-Type": "application/json, text/javascript, */*; q=0.01"
+    }
+    print("calculation in progress ...")
+    req = requests.get(url=url, headers=headers)
+    response = req.content
+    response1 = str(response).replace('\\n', '')
+    return response1
+#retourne la liste des networks présents dans le fichier config
+def get_all_nt(path) -> list:
+    wb_obj = openpyxl.load_workbook(path)
+    sheet_obj = wb_obj.active
+    type = get_type(path)
+    l = list()
+    for i in range(sheet_obj.max_row):
+        cell_obj = sheet_obj.cell(row=i + 1, column=1)
+        if isNetwork(cell_obj.value):
+            l.append(str(cell_obj.value).replace('GW','').replace('MC','').replace('_','.'))
+    return l
+
+def delete_all_Nt(path):
+    l = get_all_nt(path)
+    site_name = get_site_name(path)
+    for nt in l:
+        get_on_url("://api.cloudrf.com/archive/delete/network?nid=" + site_name + "." + nt)
+
+def merge_all(path):
+    l = get_all_nt(path)
+    site_name = get_site_name(path)
+    for nt in l:
+        print("merging" + site_name + "." + nt)
+        get_on_url("https://api.cloudrf.com/mesh?network=" + site_name + "." + nt + "&name=" + nt + "_merged" )
+        print(site_name + "." + nt + "merged !")
 
 #envoie tous les TC sur la base (réseaux créés automatiquement grâce aux noms)
 def post_all_TC(path):
@@ -208,9 +269,10 @@ def post_all_TC(path):
             ID = sheet_obj.cell(row=i + 1, column=3).value
             lon = transf[0]
             lat = transf[1]
-            print(post_TC(MC,GW,ID,lat,lon,get_site_name(path)))
+            site =get_site_name(path)
+            print(post_TC(MC,GW,ID,lat,lon,site))
+    merge_NT(str(site) + "." + str(MC) + "." + str(GW))
             #time.sleep(0.5)
-
 
 #envoyer un TC sur la base avec toutes les infos qui vont avec
 def post_TC(MC, GW, TC_id, lat, long, site) -> str:
@@ -282,7 +344,15 @@ def get_all_id() -> dict:
     response  = req.content
     response1 = str(response).replace('\\n','')
     return json.loads(str(response).replace('\\n','')[2: len(response1) - 1])
-    # print("code : " + str(req.status_code) + " message : " + str(req._content))
+#va merger le Network en paramètre
+def merge_NT(nt):
+    headers = {
+        "key": "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
+        "content-Type": "application/json, text/javascript, */*; q=0.01"
+    }
+    print("merging " + str(nt) + "...")
+    req = requests.get(url="https://api.cloudrf.com/mesh?network=" + str(nt) + "&name=" + str(nt) + "_merged" , headers=headers)
+    print("code : " + str(req.status_code) + " message : " + str(req._content))
 
 #supprime tous les éléments de la base
 def delete_all():
@@ -291,12 +361,15 @@ def delete_all():
         delete(el['id'])
     print("nothing else to delete ...")
 
+#########################################
+#       toujours poster GW avant TC     #
+#########################################
 #delete_all()
 #post_network_GW("config_sernhac.xlsx")
-delete_all()
-post_network_GW("config_gargenville.xlsx")
-post_all_TC("config_gargenville.xlsx")
-
+#delete_all()
+#post_network_GW("config_sernhac.xlsx")
+#post_all_TC("config_sernhac.xlsx")
+merge_all("config_gargenville.xlsx")
 # c = input("clean database ? (o/n ; 0 to cancel) : ")
 # if c == "o":
 #     delete_all()
