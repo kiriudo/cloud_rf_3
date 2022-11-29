@@ -83,7 +83,6 @@ if __name__ == '__main__':
         "features": []
     }
 
-
     for i in range(sheet_obj.max_row):
         north = sheet_obj.cell(row=i + 1, column=8)
         south = sheet_obj.cell(row=i + 1, column=9)

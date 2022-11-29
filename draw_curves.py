@@ -115,7 +115,7 @@ def dist(TC,path) -> float: #retourne la distance d'un TC à sa GW en mètres
     lat_TC = deg2rad(float(coord_TC[0]))
     return distanceGPS(lat_TC,lon_TC,lat_GW,lon_GW)
 def get_unique_trackers():
-    df = pandas.read_csv('data_aws.csv')
+    df = pandas.read_csv('data_aws_3.csv')
     trackers = df["tracker"].tolist()
     unique_trackers = set(trackers)
     unique_trackers = sorted(unique_trackers)
@@ -135,7 +135,7 @@ def countnan(l):
 def nan_distance(Y):
     step = 15
     print("making distance latence ...")
-    df = pandas.read_csv('data_aws.csv')
+    df = pandas.read_csv('data_aws_3.csv')
     trackers_distance = create_dict(get_unique_trackers(), getdist("config_sernhac.xlsx"))
     trackers_distance = dict(sorted(trackers_distance.items(), key=lambda item: item[1]))
     unique_trackers = trackers_distance.keys()
@@ -163,7 +163,7 @@ def nan_distance(Y):
 
 def draw_curves(X, Y):
     print("parsing csv file ...")
-    df = pandas.read_csv('data_aws.csv')
+    df = pandas.read_csv('data_aws_3.csv')
     trackers_distance = create_dict(get_unique_trackers(),getdist("config_sernhac.xlsx"))
     trackers_distance = dict(sorted(trackers_distance.items(), key=lambda item: item[1]))
     unique_trackers = trackers_distance.keys()
@@ -234,22 +234,25 @@ def draw_all_curves(path):
     all_img = lat_images + rec_images
     #all = {"img" : all_img,"dist" : getdist(path)}
     return all_img
-def getdist(path):
+
+#renvoie une liste avec toutes les distances tracker -> gateways
+def getdist(path) -> list:
     l = []
-    df = pandas.read_csv('data_aws.csv')
+    df = pandas.read_csv('data_aws_3.csv')
     trackers = df["tracker"].tolist()
     unique_trackers = set(trackers)
     unique_trackers = sorted(unique_trackers)
     for tc in unique_trackers:
         l.append(round(dist(tc,path)))
     return l
-#renvoie la dictionnaire avec distance et latence
+
+#trace la latence en fonction de la distance avec couleurs différentes en fonction de la Gateway
 def lat_list_med(path) -> dict:
     d1 = dict()
     d2 = dict()
     l = list()
     print("parsing csv file ...")
-    df = pandas.read_csv('data_aws.csv')
+    df = pandas.read_csv('data_aws_3.csv')
     unique_trackers = get_unique_trackers()
     for tc in list(unique_trackers):
         GW = tc.split('.')[1]
@@ -279,19 +282,90 @@ def lat_list_med(path) -> dict:
     plt.show()
     return d1
 
+#trace la latence en fonction de la distance pour une plage d'angle donnée
+def draw_dist_lat_anglerange(path,anglemin,anglemax,nGW,col):
+    d = dict()
+    print("parsing csv file ...")
+    df = pandas.read_csv('data_aws_3.csv')
+    unique_trackers = get_unique_trackers()
+    for tc in unique_trackers:
+        if tc.split('.')[1] == str(nGW):
+            print("traitement des données ...")
+            langle = list()
+            distance = dist(tc,path)
+            tc_data = df.loc[df['tracker'] == tc]
+            lat =  clean_nan(tc_data['zigbee_last_message_txrx'].tolist())
+            angles =tc_data['current_angle'].tolist()
+            print("nettoyage des nan ...")
+            lat,angles = clean_nan_eq(lat,angles)[0],clean_nan_eq(lat,angles)[1]
+            for i in range(len(angles)):
+                if angles[i] > anglemin and angles[i] < anglemax:
+                    langle.append(lat[i])
+            print("calcul de la médiane ...")
+            d.update({distance : np.percentile(np.array(langle),50)})
+    plt.scatter(d.keys(),d.values(), color = col)
+    plt.title('latence en fonction de la distance pour ' + str(anglemin) + " < angle < " + str(anglemax))
+    plt.ylim([0, 0.6])
+    plt.ylabel('latence')
+    plt.xlabel('distance')
+    plt.show()
+
+#permet de supprimer les nan d'une liste en supprimant la valeur à la même position dans l'autre liste
+def clean_nan_eq(l1,l2) -> list:
+    l1n = list()
+    l2n = list()
+    for i in range(len(l1)):
+        if isnan(l1[i]) == False:
+            l1n.append(l1[i])
+            l2n.append(l2[i])
+    return [l1n,l2n]
+
+#renvoie la liste en paramètre sans les nan
+def clean_nan(l):
+    l1 = list()
+    for val in l:
+        if isnan(val) == False:
+            l1.append(val)
+    return l1
+
+def most_lat_tc():
+    d = dict()
+    maxi = list([0])
+    print("parsing csv file ...")
+    df = pandas.read_csv('data_aws_3.csv')
+    unique_trackers = get_unique_trackers()
+    for tc in unique_trackers:
+        if tc.split('.')[1] == str(1):
+            tc_data = df.loc[df['tracker'] == tc]
+            lat = clean_nan(tc_data['zigbee_last_message_txrx'].tolist())
+            d.update({tc : np.percentile(np.array(lat),50)})
+
+    d = dict(sorted(d.items(), key=lambda x: x[1]))
+    lats = list(d.values())
+    tc = list(d.keys())
+    # for i in range(len(lats)):
+    #     if lats[i] > maxi:
+    #         lmaxi = lats[i]
+    #         tcmaxi = tc[i]
+    for i in range(4):
+        print(str(tc[len(tc)-1 - i]) + " : " + str(lats[ len(lats)-1 - i]) + "\n")
 
 # env = Environment(loader = FileSystemLoader("template"))
 # template = env.get_template("mytemplate.html.j2")
 # output = template.render(images = draw_all_curves("config_sernhac.xlsx"))
 # with io.open("index3.html", "w") as file_point:
 #     file_point.write(output)
-print(get_unique_trackers())
-print(lat_list_med("config_sernhac.xlsx"))
+# print(get_unique_trackers())
+#print(lat_list_med("config_sernhac.xlsx"))
 # print("TC: " + str(pos_TC("TC1.1.1", "config_sernhac.xlsx")))
 # print("GW: " + str(pos_GW("TC1.1.1", "config_sernhac.xlsx")))
 #print("dist : " + str(round(dist("TC1.2.84", "config_gargenville.xlsx"))))
 #print(getdist("config_sernhac.xlsx"))
 #print(draw_all_curves("config_sernhac.xlsx"))
 #nan_distance('zigbee_last_message_txrx')
+draw_dist_lat_anglerange("config_sernhac.xlsx",anglemin = -5, anglemax = 5,nGW = 1,col = 'red')
+draw_dist_lat_anglerange("config_sernhac.xlsx",anglemin = 15, anglemax = 25,nGW = 1,col = 'blue')
+#draw_dist_lat_anglerange("config_sernhac.xlsx",anglemin = -15, anglemax = -25,nGW = 1,col = 'green')
+#most_lat_tc()
 ###############################################################
 #geopy

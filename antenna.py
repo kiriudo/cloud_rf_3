@@ -307,8 +307,8 @@ def post_all_TC(path):
             lat = transf[1]
             site = get_site_name(path)
             print(post_TC(MC,GW,ID,lat,lon,site))
-    merge_NT(str(site) + "." + str(MC) + "." + str(GW))
-            #time.sleep(0.5)
+            #merge_NT(str(site) + "." + str(MC) + "." + str(GW))
+            time.sleep(1)
 
 #envoyer un TC sur la base avec toutes les infos qui vont avec
 def post_TC(MC, GW, TC_id, lat, long, site) -> str:
@@ -407,8 +407,8 @@ def delete_all():
 #post_network_GW("config_sernhac.xlsx")
 #post_all_TC("config_sernhac.xlsx")
 #merge_all("config_gargenville.xlsx")
-print(get_all_nt("config_gargenville.xlsx"))
-generate_csv_nt("config_gargenville.xlsx","1.1")
+# print(get_all_nt("config_gargenville.xlsx"))
+generate_csv_nt("config_sernhac.xlsx","1.1")
 # c = input("clean database ? (o/n ; 0 to cancel) : ")
 # if c == "o":
 #     delete_all()
@@ -433,3 +433,4 @@ generate_csv_nt("config_gargenville.xlsx","1.1")
 #             delete_all()
 #         elif c == "0":
 #             print("bye !")
+#post_all_TC("config_sernhac.xlsx")
