@@ -4,11 +4,6 @@ import json
 import pyproj
 import os
 import warnings
-from selenium import webdriver
-from time import sleep
-import csv
-import pandas as pd
-import re
 import requests
 
 query = {
@@ -133,26 +128,60 @@ def post(json):
     }
     req = requests.post(url = "https://api.cloudrf.com/area",json= json,headers=headers)
     return str(req.content).replace('\\n','')
-def generate_csv(path):
-    entetes = list()
+
+#générer le fichier CSV contenant les coordonnées de tous les TC de la centrale
+def generate_csv_all(path):
+    print("generating csv file...")
+    ligneEntete = "id,longitude,latitude\n"
     valeurs = []
-    count =0
+    count = 0
     wb_obj = openpyxl.load_workbook(path)
     sheet_obj = wb_obj.active
     type = get_type(path)
     for i in range(sheet_obj.max_row):
         cell_obj = sheet_obj.cell(row=i + 1, column=10)
         if cell_obj.value != "TC coordinates" and cell_obj.value is not None:
-            valeurs[i][0] = sheet_obj.cell(row=i + 1, column=3).value
-            valeurs[i][0] = sheet_obj.cell(row=i + 1, column=3).value
-            valeurs[i][0] = sheet_obj.cell(row=i + 1, column=3).value
-            count = count + 1
+            if type != 4326:
+                coord = transform(float(cell_obj.value.split(',')[0]),
+                                  float(cell_obj.value.split(',')[1]))
+                coord = [coord[1],coord[0]]
+            else:
+                coord = str(cell_obj.value).split(',')
+            valeurs.append(str(sheet_obj.cell(row=i + 1, column=3).value) + "," + str(coord[1]) + "," + str(coord[0]) + "\n")
     f = open('tc_coordinates.csv', 'w')
-    ligneEntete = ";".join(entetes) + "\n"
     f.write(ligneEntete)
     for valeur in valeurs:
-        ligne = ";".join(valeur) + "\n"
-        f.write(ligne)
+        f.write(valeur)
+
+#génère un fihcier csv par réseau
+def generate_csv_all_nt(path):
+    for nt in get_all_nt(path):
+        generate_csv_nt(path,nt)
+
+#génère le fichier csv du réseau en paramètres
+def generate_csv_nt(path,nt):
+    print("generating csv file for " + nt + "...")
+    ligneEntete = "id,longitude,latitude\n"
+    valeurs = []
+    count = 0
+    wb_obj = openpyxl.load_workbook(path)
+    sheet_obj = wb_obj.active
+    type = get_type(path)
+    for i in range(sheet_obj.max_row):
+        cell_obj = sheet_obj.cell(row=i + 1, column=10)
+        actnt = str(sheet_obj.cell(row = i + 1, column = 1).value) + "." + str(sheet_obj.cell(row = i + 1, column =  2).value)
+        if cell_obj.value != "TC coordinates" and cell_obj.value is not None and actnt == nt:
+            if type != 4326:
+                coord = transform(float(cell_obj.value.split(',')[0]),
+                                  float(cell_obj.value.split(',')[1]))
+                coord = [coord[1],coord[0]]
+            else:
+                coord = str(cell_obj.value).split(',')
+            valeurs.append(str(sheet_obj.cell(row=i + 1, column=3).value) + "," + str(coord[1]) + "," + str(coord[0]) + "\n")
+    f = open('tc_coordinates' + nt + '.csv', 'w')
+    f.write(ligneEntete)
+    for valeur in valeurs:
+        f.write(valeur)
 #supprimer un élément de la base (par rapport à son ID)
 def delete(elt):
     headers = {
@@ -208,6 +237,8 @@ def get_TC_list(path) -> dict:
             }})
             print(l)
     return l
+
+#permet de faire un POST avec l'url en paramètres
 def post_on_url(url):
     headers = {
         "key": "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
@@ -215,6 +246,8 @@ def post_on_url(url):
     }
     req = requests.post(url=url, headers=headers)
     print("code : " + str(req.status_code) + " message : " + str(req._content))
+
+#permet de faire un GET avec l'url en paramètres
 def get_on_url(url):
     headers = {
         "key": "47474-8f9ffce24b48f4dca92bfe201421a5e3f601989d",
@@ -225,6 +258,7 @@ def get_on_url(url):
     response = req.content
     response1 = str(response).replace('\\n', '')
     return response1
+
 #retourne la liste des networks présents dans le fichier config
 def get_all_nt(path) -> list:
     wb_obj = openpyxl.load_workbook(path)
@@ -237,12 +271,14 @@ def get_all_nt(path) -> list:
             l.append(str(cell_obj.value).replace('GW','').replace('MC','').replace('_','.'))
     return l
 
+#supprime tous les Networks
 def delete_all_Nt(path):
     l = get_all_nt(path)
     site_name = get_site_name(path)
     for nt in l:
         get_on_url("://api.cloudrf.com/archive/delete/network?nid=" + site_name + "." + nt)
 
+#merge tous les réseaux
 def merge_all(path):
     l = get_all_nt(path)
     site_name = get_site_name(path)
@@ -269,7 +305,7 @@ def post_all_TC(path):
             ID = sheet_obj.cell(row=i + 1, column=3).value
             lon = transf[0]
             lat = transf[1]
-            site =get_site_name(path)
+            site = get_site_name(path)
             print(post_TC(MC,GW,ID,lat,lon,site))
     merge_NT(str(site) + "." + str(MC) + "." + str(GW))
             #time.sleep(0.5)
@@ -344,6 +380,7 @@ def get_all_id() -> dict:
     response  = req.content
     response1 = str(response).replace('\\n','')
     return json.loads(str(response).replace('\\n','')[2: len(response1) - 1])
+
 #va merger le Network en paramètre
 def merge_NT(nt):
     headers = {
@@ -369,7 +406,9 @@ def delete_all():
 #delete_all()
 #post_network_GW("config_sernhac.xlsx")
 #post_all_TC("config_sernhac.xlsx")
-merge_all("config_gargenville.xlsx")
+#merge_all("config_gargenville.xlsx")
+print(get_all_nt("config_gargenville.xlsx"))
+generate_csv_nt("config_gargenville.xlsx","1.1")
 # c = input("clean database ? (o/n ; 0 to cancel) : ")
 # if c == "o":
 #     delete_all()
